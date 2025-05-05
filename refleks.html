@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start F1 + Stoper</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            background-color: #222;
+            color: white;
+        }
+        .light-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 3px solid white;
+            background-color: #111;
+        }
+        .row {
+            display: flex;
+            justify-content: center;
+        }
+        .light {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 10px;
+            background-color: #444;
+            box-shadow: 0 0 5px white;
+            border: 3px solid white;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .on {
+            background-color: red;
+            box-shadow: 0 0 20px red;
+        }
+        .timer {
+            font-size: 4rem;
+            border: 3px solid white;
+            padding: 20px;
+            background-color: #111;
+            box-shadow: 0 0 10px white;
+            width: 320px;
+            margin-top: 20px;
+        }
+        .buttons {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .falstart {
+            font-size: 3rem;
+            color: red;
+            font-weight: bold;
+            display: none;
+            margin-top: 20px;
+        }
+        .best-times {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: left;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: #111;
+            padding: 10px;
+            border: 2px solid white;
+        }
+        button {
+            font-size: 1.5rem;
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            background-color: #007bff;
+            box-shadow: 0 0 5px #007bff;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <button id="startButton" onclick="startSequence()">START</button>
+    <div class="light-container">
+        <div class="row">
+            <div class="light" id="light1"></div>
+            <div class="light" id="light2"></div>
+            <div class="light" id="light3"></div>
+            <div class="light" id="light4"></div>
+            <div class="light" id="light5"></div>
+        </div>
+        <div class="row">
+            <div class="light" id="light1b"></div>
+            <div class="light" id="light2b"></div>
+            <div class="light" id="light3b"></div>
+            <div class="light" id="light4b"></div>
+            <div class="light" id="light5b"></div>
+        </div>
+    </div>
+
+    <div class="timer" id="timer">00:00:00</div>
+    <div class="best-times" id="best-times">Najlepsze wyniki:<br></div>
+
+    <div class="buttons">
+        <button id="stopButton" onclick="stopTimer()">Stop</button>
+        <button onclick="reset()">Reset</button>
+    </div>
+
+    <div class="falstart" id="falstart">FALSTART!</div>
+
+    <script>
+        let running = false;
+        let startTime;
+        let elapsedTime = 0;
+        let timerInterval;
+        let lightsStarted = false;
+        let bestTimes = [];
+        let falstartTriggered = false;
+
+        function startSequence() {
+            document.getElementById("startButton").style.display = "none";
+            let delay = 1000;
+            lightsStarted = false;
+
+            for (let i = 1; i <= 5; i++) {
+                setTimeout(() => {
+                    if (!falstartTriggered) {
+                        document.getElementById(`light${i}`).classList.add('on');
+                        document.getElementById(`light${i}b`).classList.add('on');
+                    }
+                }, delay * i);
+            }
+
+            setTimeout(() => {
+                if (!falstartTriggered) {
+                    for (let i = 1; i <= 5; i++) {
+                        document.getElementById(`light${i}`).classList.remove('on');
+                        document.getElementById(`light${i}b`).classList.remove('on');
+                    }
+                    lightsStarted = true;
+                    startTimer();
+                }
+            }, 6000);
+        }
+
+        function startTimer() {
+            running = true;
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                elapsedTime = Date.now() - startTime;
+                updateTimer();
+            }, 10);
+        }
+
+        function updateTimer() {
+            document.getElementById('timer').textContent = (elapsedTime / 1000).toFixed(2);
+        }
+
+        function stopTimer() {
+            if (!lightsStarted) {
+                falstartTriggered = true;
+                document.getElementById("falstart").style.display = "block";
+                clearInterval(timerInterval);
+                document.querySelectorAll('.light').forEach(light => light.classList.remove('on'));
+
+                setTimeout(() => {
+                    document.querySelectorAll('.light').forEach(light => light.style.opacity = "0.2");
+                    setTimeout(reset, 5000);
+                }, 100);
+                return;
+            }
+            if (running) {
+                clearInterval(timerInterval);
+                running = false;
+                let currentTime = parseFloat(document.getElementById("timer").textContent);
+                
+                bestTimes.push(currentTime);
+                bestTimes.sort((a, b) => a - b);
+
+                let bestTimesHTML = "Najlepsze wyniki:<br>" + bestTimes.map((t, i) => `${i + 1}. ${t.toFixed(2)}s`).join("<br>");
+                document.getElementById("best-times").innerHTML = bestTimesHTML;
+            }
+        }
+
+        function reset() {
+            falstartTriggered = false;
+            document.getElementById("falstart").style.display = "none";
+            elapsedTime = 0;
+            updateTimer();
+            document.querySelectorAll('.light').forEach(light => light.style.opacity = "1");
+            document.getElementById("startButton").style.display = "block";
+            lightsStarted = false;
+        }
+    </script>
+</body>
+</html>
